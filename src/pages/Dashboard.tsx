@@ -1,94 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DashboardStats } from '@/components/DashboardStats';
 import { JMTCard } from '@/components/JMTCard';
+import { CreateJMTModal } from '@/components/modals/CreateJMTModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Bell, TrendingUp, Activity } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Search, Filter, Bell, Activity, TrendingUp } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
 
 interface DashboardProps {
   userRole: 'user' | 'supervisor' | 'director';
 }
 
-// Données simulées pour la démo
-const mockJMTData = [
-  {
-    id: '1',
-    title: 'Maintenance ascenseur Tour A',
-    description: 'Vérification et maintenance préventive de l\'ascenseur de la tour A, niveaux 15-20',
-    zone: 'Tour A - Niveaux 15-20',
-    type: 'height' as const,
-    status: 'pending' as const,
-    createdAt: new Date('2024-01-15'),
-    deadline: new Date('2024-01-20'),
-    assignedTo: 'Équipe Maintenance',
-    riskLevel: 'high' as const,
-    requiredPPE: ['Harnais', 'Casque', 'Chaussures de sécurité', 'Gants']
-  },
-  {
-    id: '2',
-    title: 'Inspection antenne télécoms',
-    description: 'Inspection technique annuelle de l\'antenne de télécommunications',
-    zone: 'Tour B - Sommet',
-    type: 'tower' as const,
-    status: 'approved' as const,
-    createdAt: new Date('2024-01-10'),
-    deadline: new Date('2024-01-18'),
-    assignedTo: 'TechCom Services',
-    riskLevel: 'medium' as const,
-    requiredPPE: ['Harnais', 'Casque', 'Lunettes']
-  },
-  {
-    id: '3',
-    title: 'Réparation éclairage',
-    description: 'Remplacement des luminaires défaillants dans les zones communes',
-    zone: 'Bâtiment C - RDC',
-    type: 'electrical' as const,
-    status: 'in-progress' as const,
-    createdAt: new Date('2024-01-12'),
-    deadline: new Date('2024-01-16'),
-    assignedTo: 'ElecPro',
-    riskLevel: 'low' as const,
-    requiredPPE: ['Gants isolants', 'Casque']
-  }
-];
-
-const recentActivities = [
-  {
-    id: 1,
-    type: 'validation',
-    message: 'JMT "Maintenance ascenseur" validée par M. Dupont',
-    time: '10:30',
-    status: 'success'
-  },
-  {
-    id: 2,
-    type: 'creation',
-    message: 'Nouvelle JMT créée: "Inspection antenne"',
-    time: '09:15',
-    status: 'info'
-  },
-  {
-    id: 3,
-    type: 'alert',
-    message: 'Permis "Travail hauteur" expire dans 24h',
-    time: '08:45',
-    status: 'warning'
-  }
-];
-
 export function Dashboard({ userRole }: DashboardProps) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const { jmts, notifications, markNotificationRead } = useApp();
+
   const handleViewJMT = (id: string) => {
     console.log('Viewing JMT:', id);
+    // TODO: Implémenter la vue détaillée
   };
 
   const handleEditJMT = (id: string) => {
     console.log('Editing JMT:', id);
+    // TODO: Implémenter l'édition
   };
 
   const handleCreateJMT = () => {
-    console.log('Creating new JMT');
+    setShowCreateModal(true);
   };
+
+  // Filtrer les JMT selon le rôle et les filtres
+  const filteredJMTs = jmts.filter(jmt => {
+    const matchesSearch = jmt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         jmt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         jmt.zone.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || jmt.status === statusFilter;
+    
+    // Filtrage par rôle
+    if (userRole === 'user') {
+      return matchesSearch && matchesStatus;
+    } else if (userRole === 'supervisor') {
+      return matchesSearch && matchesStatus && (jmt.status === 'pending' || jmt.status === 'approved');
+    } else {
+      return matchesSearch && matchesStatus;
+    }
+  });
 
   const getRoleGreeting = () => {
     const greetings = {
@@ -104,7 +66,7 @@ export function Dashboard({ userRole }: DashboardProps) {
       return (
         <Button 
           onClick={handleCreateJMT}
-          className="bg-gradient-primary hover:opacity-90 shadow-glow"
+          className="bg-gradient-primary hover:opacity-90 shadow-glow transition-all duration-200 hover:scale-105"
         >
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle JMT
@@ -114,11 +76,35 @@ export function Dashboard({ userRole }: DashboardProps) {
     return null;
   };
 
+  const recentActivities = [
+    {
+      id: 1,
+      type: 'validation',
+      message: 'JMT "Maintenance ascenseur" validée par M. Dupont',
+      time: '10:30',
+      status: 'success'
+    },
+    {
+      id: 2,
+      type: 'creation',
+      message: 'Nouvelle JMT créée: "Inspection antenne"',
+      time: '09:15',
+      status: 'info'
+    },
+    {
+      id: 3,
+      type: 'alert',
+      message: 'Permis "Travail hauteur" expire dans 24h',
+      time: '08:45',
+      status: 'warning'
+    }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* En-tête */}
+    <div className="space-y-6 animate-fade-in">
+      {/* En-tête avec animation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="animate-scale-in">
           <h1 className="text-2xl font-bold text-foreground">
             {getRoleGreeting()}
           </h1>
@@ -126,41 +112,104 @@ export function Dashboard({ userRole }: DashboardProps) {
             Gérez vos autorisations de travail en toute sécurité
           </p>
         </div>
-        {getActionButton()}
+        <div className="animate-scale-in">
+          {getActionButton()}
+        </div>
       </div>
 
-      {/* Statistiques */}
-      <DashboardStats userRole={userRole} />
+      {/* Statistiques avec animation */}
+      <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <DashboardStats userRole={userRole} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* JMT récentes */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Section principale des JMT */}
+        <div className="lg:col-span-2 space-y-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 className="text-lg font-semibold text-foreground">
               {userRole === 'user' ? 'Mes JMT récentes' : 'JMT à traiter'}
             </h2>
-            <Button variant="ghost" size="sm">
-              Voir tout
-            </Button>
+            
+            {/* Filtres et recherche */}
+            <div className="flex gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-64"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="approved">Validé</SelectItem>
+                  <SelectItem value="in-progress">En cours</SelectItem>
+                  <SelectItem value="rejected">Refusé</SelectItem>
+                  <SelectItem value="archived">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
-            {mockJMTData.map((jmt) => (
-              <JMTCard
-                key={jmt.id}
-                jmt={jmt}
-                userRole={userRole}
-                onView={handleViewJMT}
-                onEdit={handleEditJMT}
-              />
-            ))}
+          {/* Liste des JMT avec animations */}
+          <div className="space-y-4">
+            {filteredJMTs.length > 0 ? (
+              filteredJMTs.map((jmt, index) => (
+                <div 
+                  key={jmt.id} 
+                  className="animate-fade-in hover:scale-[1.02] transition-all duration-200"
+                  style={{ animationDelay: `${0.1 * index}s` }}
+                >
+                  <JMTCard
+                    jmt={jmt}
+                    userRole={userRole}
+                    onView={handleViewJMT}
+                    onEdit={handleEditJMT}
+                  />
+                </div>
+              ))
+            ) : (
+              <Card className="shadow-card animate-fade-in">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="text-center space-y-2">
+                    <p className="text-lg font-medium text-muted-foreground">
+                      Aucune JMT trouvée
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {searchTerm || statusFilter !== 'all' 
+                        ? 'Essayez de modifier vos critères de recherche'
+                        : 'Commencez par créer votre première JMT'
+                      }
+                    </p>
+                    {userRole === 'user' && !searchTerm && statusFilter === 'all' && (
+                      <Button 
+                        onClick={handleCreateJMT}
+                        className="mt-4"
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Créer ma première JMT
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
-        {/* Panneau latéral */}
-        <div className="space-y-4">
+        {/* Panneau latéral avec animations */}
+        <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           {/* Activité récente */}
-          <Card className="shadow-card">
+          <Card className="shadow-card hover:shadow-industrial transition-shadow duration-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -168,11 +217,15 @@ export function Dashboard({ userRole }: DashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 text-sm">
+              {recentActivities.map((activity, index) => (
+                <div 
+                  key={activity.id} 
+                  className="flex items-start gap-3 text-sm animate-fade-in"
+                  style={{ animationDelay: `${0.1 * index}s` }}
+                >
                   <div className={`w-2 h-2 rounded-full mt-2 ${
-                    activity.status === 'success' ? 'bg-accent' :
-                    activity.status === 'warning' ? 'bg-warning' : 'bg-primary'
+                    activity.status === 'success' ? 'bg-accent animate-pulse' :
+                    activity.status === 'warning' ? 'bg-warning animate-pulse' : 'bg-primary animate-pulse'
                   }`} />
                   <div className="flex-1">
                     <p className="text-foreground">{activity.message}</p>
@@ -184,45 +237,51 @@ export function Dashboard({ userRole }: DashboardProps) {
           </Card>
 
           {/* Notifications */}
-          <Card className="shadow-card">
+          <Card className="shadow-card hover:shadow-industrial transition-shadow duration-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-primary" />
                 Notifications
-                <Badge variant="destructive" className="ml-auto">3</Badge>
+                <Badge variant="destructive" className="ml-auto animate-glow">
+                  {notifications.filter(n => !n.read).length}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
-                <p className="text-sm font-medium text-warning-foreground">
-                  Permis hauteur expire bientôt
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Tour A - Expire le 20/01/2024
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <p className="text-sm font-medium text-primary">
-                  Nouvelle validation requise
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  JMT en attente de votre validation
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
-                <p className="text-sm font-medium text-accent">
-                  Formation HSE programmée
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  25/01/2024 - Salle de formation
-                </p>
-              </div>
+              {notifications.slice(0, 3).map((notification, index) => (
+                <div 
+                  key={notification.id}
+                  className={`p-3 rounded-lg border transition-all duration-200 hover:scale-[1.02] cursor-pointer animate-fade-in ${
+                    notification.type === 'warning' ? 'bg-warning/10 border-warning/20' :
+                    notification.type === 'info' ? 'bg-primary/10 border-primary/20' :
+                    notification.type === 'success' ? 'bg-accent/10 border-accent/20' :
+                    'bg-destructive/10 border-destructive/20'
+                  }`}
+                  style={{ animationDelay: `${0.1 * index}s` }}
+                  onClick={() => markNotificationRead(notification.id)}
+                >
+                  <p className={`text-sm font-medium ${
+                    notification.type === 'warning' ? 'text-warning-foreground' :
+                    notification.type === 'info' ? 'text-primary' :
+                    notification.type === 'success' ? 'text-accent' :
+                    'text-destructive'
+                  }`}>
+                    {notification.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {notification.message}
+                  </p>
+                  {!notification.read && (
+                    <div className="w-2 h-2 bg-primary rounded-full float-right -mt-4 animate-pulse" />
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Indicateur de performance */}
+          {/* Indicateur de performance pour directeur */}
           {userRole === 'director' && (
-            <Card className="shadow-card">
+            <Card className="shadow-card hover:shadow-industrial transition-shadow duration-200 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
@@ -236,11 +295,14 @@ export function Dashboard({ userRole }: DashboardProps) {
                     <span className="text-sm font-medium text-accent">94%</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-gradient-success h-2 rounded-full" style={{ width: '94%' }} />
+                    <div 
+                      className="bg-gradient-success h-2 rounded-full transition-all duration-1000 ease-out" 
+                      style={{ width: '94%' }}
+                    />
                   </div>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Objectif: 95%</span>
-                    <span>+2% ce mois</span>
+                    <span className="text-accent font-medium">+2% ce mois</span>
                   </div>
                 </div>
               </CardContent>
@@ -248,6 +310,12 @@ export function Dashboard({ userRole }: DashboardProps) {
           )}
         </div>
       </div>
+
+      {/* Modal de création */}
+      <CreateJMTModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      />
     </div>
   );
 }

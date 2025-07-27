@@ -7,7 +7,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppHeader } from "@/components/AppHeader";
+import { AppProvider } from "@/contexts/AppContext";
 import { Dashboard } from "@/pages/Dashboard";
+import { ValidationPage } from "@/pages/ValidationPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,7 +20,8 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      <AppProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -36,7 +39,11 @@ const App = () => {
                     <Route path="/" element={<Dashboard userRole={userRole} />} />
                     <Route path="/jmt" element={<Dashboard userRole={userRole} />} />
                     <Route path="/permits" element={<Dashboard userRole={userRole} />} />
-                    <Route path="/validations" element={<Dashboard userRole={userRole} />} />
+                    <Route path="/validations" element={
+                      userRole !== 'user' ? 
+                        <ValidationPage userRole={userRole as 'supervisor' | 'director'} /> : 
+                        <Dashboard userRole={userRole} />
+                    } />
                     <Route path="/teams" element={<Dashboard userRole={userRole} />} />
                     <Route path="/reports" element={<Dashboard userRole={userRole} />} />
                     <Route path="/settings" element={<Dashboard userRole={userRole} />} />
@@ -49,7 +56,8 @@ const App = () => {
           </SidebarProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
+    </AppProvider>
+  </QueryClientProvider>
   );
 };
 
