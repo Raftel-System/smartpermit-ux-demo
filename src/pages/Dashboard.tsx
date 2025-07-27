@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Filter, Bell, Activity, TrendingUp } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
+import {JMTData, useApp} from '@/contexts/AppContext';
+import JMTModal from "@/components/modals/JMTModal";
+import JMTPrintModal from "@/components/modals/JMTPrintModal.tsx";
 
 interface DashboardProps {
   userRole: 'user' | 'supervisor' | 'director';
@@ -20,15 +22,37 @@ export function Dashboard({ userRole }: DashboardProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { jmts, notifications, markNotificationRead } = useApp();
 
+  // Ajoute en haut du composant Dashboard
+  const [selectedJMT, setSelectedJMT] = useState<JMTData>(null);
+  const [modalMode, setModalMode] = useState<"view" | "edit">("view");
+  const [modalOpen, setModalOpen] = useState(false);
+
+
+
+// Fonction pour ouvrir la modale avec un mode
+  const openModal = (jmt: JMTData, mode: "view" | "edit") => {
+    setSelectedJMT(jmt);
+    setModalMode(mode);
+    setModalOpen(true);
+  };
+
   const handleViewJMT = (id: string) => {
     console.log('Viewing JMT:', id);
     // TODO: Implémenter la vue détaillée
+    const jmt = jmts.find(j => j.id === id);
+    if (jmt) openModal(jmt, "view");
   };
 
   const handleEditJMT = (id: string) => {
     console.log('Editing JMT:', id);
     // TODO: Implémenter l'édition
+    const jmt = jmts.find(j => j.id === id);
+    if (jmt) openModal(jmt, "edit");
   };
+
+  const handleDownloadPDF = (jmt: JMTData) => {
+    console.log('Downloading PDF for JMT:', jmt.id);
+  }
 
   const handleCreateJMT = () => {
     setShowCreateModal(true);
@@ -173,6 +197,7 @@ export function Dashboard({ userRole }: DashboardProps) {
                     userRole={userRole}
                     onView={handleViewJMT}
                     onEdit={handleEditJMT}
+                    onDownloadPdf={handleDownloadPDF}
                   />
                 </div>
               ))
@@ -316,6 +341,22 @@ export function Dashboard({ userRole }: DashboardProps) {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
       />
+
+
+
+
+      {selectedJMT && (
+          <JMTModal
+              isOpen={modalOpen}
+              mode={modalMode}
+              jmt={selectedJMT}
+              onClose={() => setModalOpen(false)}
+              onSave={(updatedJmt) => {
+                // TODO : appel API ou mise à jour locale ici
+                console.log("Sauvegarde :", updatedJmt);
+              }}
+          />
+      )}
     </div>
   );
 }

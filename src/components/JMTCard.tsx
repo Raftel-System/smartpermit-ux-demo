@@ -1,20 +1,21 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge, Status } from './StatusBadge';
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Eye, 
-  Edit, 
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Eye,
+  Edit,
   Clock,
   AlertTriangle,
-  HardHat
+  HardHat, Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import JMTPrintModal from "@/components/modals/JMTPrintModal.tsx";
 
 interface JMTData {
   id: string;
@@ -35,6 +36,7 @@ interface JMTCardProps {
   userRole: 'user' | 'supervisor' | 'director';
   onView: (id: string) => void;
   onEdit?: (id: string) => void;
+  onDownloadPdf?: (jmt: JMTData) => void;
 }
 
 const typeLabels = {
@@ -57,8 +59,11 @@ const riskColors = {
   high: 'bg-destructive/10 text-destructive'
 };
 
-export function JMTCard({ jmt, userRole, onView, onEdit }: JMTCardProps) {
+export function JMTCard({ jmt, userRole, onView, onEdit, onDownloadPdf }: JMTCardProps) {
   const canEdit = userRole === 'user' && (jmt.status === 'pending' || jmt.status === 'rejected');
+  const canDownload = (jmt.status === 'approved' || jmt.status === 'archived');
+
+  const [printModalOpen, setPrintModalOpen] = useState(false);
   
   return (
     <Card className="shadow-card hover:shadow-industrial transition-all duration-200">
@@ -131,6 +136,8 @@ export function JMTCard({ jmt, userRole, onView, onEdit }: JMTCardProps) {
           </div>
         )}
 
+
+
         <div className="flex gap-2 pt-2">
           <Button 
             variant="outline" 
@@ -152,8 +159,25 @@ export function JMTCard({ jmt, userRole, onView, onEdit }: JMTCardProps) {
               Modifier
             </Button>
           )}
+          {canDownload && (
+              <Button
+                  variant="industrial"
+                  size="sm"
+                  onClick={() => setPrintModalOpen(true)}
+                  className="flex-1"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger PDF
+              </Button>
+          )}
         </div>
       </CardContent>
+
+      <JMTPrintModal
+          isOpen={printModalOpen}
+          onClose={() => setPrintModalOpen(false)}
+          jmt={jmt}
+      />
     </Card>
   );
 }
