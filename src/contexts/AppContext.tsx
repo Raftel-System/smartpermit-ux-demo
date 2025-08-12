@@ -18,6 +18,18 @@ export interface JMTData {
   supervisor?: string;
   director?: string;
   comments?: string;
+  pdfData?: {
+    step1: { zone: string; date?: Date; workOrderNumber: string; };
+    step2: { description: string; estimatedDuration: string; resources: {
+        people: string[]; materials: string[]; epiSpecific: string[]; epiComplets: string[];
+      }; };
+    step3: { environmentHazards: string[]; };
+    step4: { riskManagement: string[]; };
+    step5: { lethalHazards: { danger: string; controls: string; }[]; };
+    step6: { responsibleName: string; validationDate?: Date; };
+    autoDetection?: { workingAtHeight?: boolean; suggestedPermits?: string[]; };
+  };
+  workOrderNumber?: string;
 }
 
 export interface PermitData {

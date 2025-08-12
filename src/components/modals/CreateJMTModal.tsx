@@ -1,536 +1,601 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Plus, X, Save, ChevronRight, ChevronLeft } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { useApp } from '@/contexts/AppContext';
-import { toast } from '@/hooks/use-toast';
+import React, { useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, ChevronLeft, ChevronRight, Plus, Save, X } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { useApp } from "@/contexts/AppContext";
+import { DropdownTagMulti } from "@/components/form/DropdownTagMulti";
+
+type JMTType = "height" | "tower" | "confined" | "electrical";
+type RiskLevel = "low" | "medium" | "high";
+
+interface LethalHazardRow {
+  danger: string;
+  controls: string;
+}
+
+interface PDFData {
+  step1: { zone: string; date?: Date; workOrderNumber: string };
+  step2: {
+    description: string;
+    estimatedDuration: string;
+    resources: {
+      people: string[];
+      materials: string[];
+      epiSpecific: string[];
+      epiComplets: string[];
+    };
+  };
+  step3: { environmentHazards: string[] };
+  step4: { riskManagement: string[] };
+  step5: { lethalHazards: LethalHazardRow[] };
+  step6: { responsibleName: string; validationDate?: Date };
+  autoDetection?: { workingAtHeight?: boolean; suggestedPermits?: string[] };
+}
 
 interface CreateJMTModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface JMTFormData {
-  title: string;
-  description: string;
-  zone: string;
-  type: 'height' | 'tower' | 'confined' | 'electrical';
-  deadline: Date | undefined;
-  assignedTo: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  requiredPPE: string[];
-  risks: string[];
-  controls: string[];
+/* ===== Defaults ===== */
+const DEFAULT_ZONES = [
+  "Tour Dopol – Étage 1",
+  "Tour Dopol – Étage 2",
+  "Zone Atelier A",
+  "Salle Élec B",
+];
+
+const DEFAULT_DURATIONS = ["1 heure", "2 heures", "3 heures", "4 heures", "Journée"];
+
+const DEFAULT_PEOPLE = ["Électricien", "Personne de renfort", "Chef d’équipe"];
+const DEFAULT_MATERIALS = ["Câble température 3G1.5", "Poulie", "Goulottes", "Attaches", "Escabeau 3m"];
+const DEFAULT_EPI_SPECIFIC = ["Tenue contre Feu"];
+const DEFAULT_EPI_COMPLETS = ["Casque", "Gants", "Harnais", "Chaussures S3"];
+
+const DEFAULT_ENV_HAZARDS = [
+  "Brûlure",
+  "Travail en hauteur",
+  "Risque de chute d’objets",
+  "Zone de passage fréquentée",
+  "Présence possible de tension électrique",
+];
+
+const DEFAULT_RISK_MGMT = [
+  "Installation de barrières et balisage",
+  "Coupure d’alimentation et consignation (LOTOTO)",
+  "Harnais + point d’ancrage",
+  "Vérification des outils/équipements",
+  "Coordination avec équipes voisines",
+];
+
+const DEFAULT_LETHAL_ROWS: LethalHazardRow[] = [
+  { danger: "Chute de hauteur", controls: "Harnais + ancrage + intervenir à deux" },
+  { danger: "Contact électrique", controls: "Coupure, VAT, respecter LOTOTO" },
+];
+
+/* ====== UI ====== */
+function StepHeader({ n, total, title }: { n: number; total: number; title: string }) {
+  return (
+      <div>
+        <div className="text-xs text-muted-foreground">Étape {n} / {total}</div>
+        <h3 className="text-lg font-semibold mt-1">{title}</h3>
+      </div>
+  );
 }
 
-const initialFormData: JMTFormData = {
-  title: '',
-  description: '',
-  zone: '',
-  type: 'height',
-  deadline: undefined,
-  assignedTo: '',
-  riskLevel: 'medium',
-  requiredPPE: [],
-  risks: [],
-  controls: []
-};
-
-const ppeOptions = [
-  'Harnais de sécurité',
-  'Casque de protection',
-  'Chaussures de sécurité',
-  'Gants de protection',
-  'Lunettes de sécurité',
-  'Gilet haute visibilité',
-  'Masque respiratoire',
-  'Gants isolants',
-  'Détecteur de gaz'
-];
-
-const commonRisks = [
-  'Chute de hauteur',
-  'Electrocution',
-  'Coincement',
-  'Chute d\'objets',
-  'Conditions météorologiques',
-  'Espace confiné',
-  'Gaz toxiques',
-  'Incendie/Explosion'
-];
-
-const commonControls = [
-  'Formation obligatoire',
-  'Vérification des équipements',
-  'Procédure de consignation',
-  'Surveillance continue',
-  'Communication radio',
-  'Vérification météorologique',
-  'Détection de gaz',
-  'Plan d\'évacuation'
-];
-
+/* ====== Modal ====== */
 export function CreateJMTModal({ open, onOpenChange }: CreateJMTModalProps) {
+  const totalSteps = 6;
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<JMTFormData>(initialFormData);
-  const [newPPE, setNewPPE] = useState('');
-  const [newRisk, setNewRisk] = useState('');
-  const [newControl, setNewControl] = useState('');
+
+  // catalogues (options)
+  const [zoneOptions, setZoneOptions] = useState<string[]>(DEFAULT_ZONES);
+  const [durationOptions, setDurationOptions] = useState<string[]>(DEFAULT_DURATIONS);
+
+  const [peopleOptions, setPeopleOptions] = useState<string[]>(DEFAULT_PEOPLE);
+  const [materialsOptions, setMaterialsOptions] = useState<string[]>(DEFAULT_MATERIALS);
+  const [epiSpecificOptions, setEpiSpecificOptions] = useState<string[]>(DEFAULT_EPI_SPECIFIC);
+  const [epiCompletsOptions, setEpiCompletsOptions] = useState<string[]>(DEFAULT_EPI_COMPLETS);
+
+  // valeurs sélectionnées
+  const [zone, setZone] = useState<string>("");
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [workOrderNumber, setWorkOrderNumber] = useState("");
+  const [estimatedDuration, setEstimatedDuration] = useState<string>(DEFAULT_DURATIONS[3]); // "4 heures"
+  const [type, setType] = useState<JMTType>("height");
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
+  const [assignedTo, setAssignedTo] = useState<string>("Équipe Maintenance");
+
+  const [people, setPeople] = useState<string[]>([]);
+  const [materials, setMaterials] = useState<string[]>([]);
+  const [epiSpecific, setEpiSpecific] = useState<string[]>([]);
+  const [epiComplets, setEpiComplets] = useState<string[]>([]);
+
+  const [envHazards, setEnvHazards] = useState<string[]>([...DEFAULT_ENV_HAZARDS]);
+  const [riskMgmt, setRiskMgmt] = useState<string[]>([...DEFAULT_RISK_MGMT]);
+  const [lethalRows, setLethalRows] = useState<LethalHazardRow[]>([...DEFAULT_LETHAL_ROWS]);
+
+  // saisies libres
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
+  const [responsibleName, setResponsibleName] = useState("");
+
+  // auto
+  const autoDetection = useMemo(() => {
+    const workingAtHeight = type === "height" || envHazards.some((h) => /hauteur/i.test(h));
+    return {
+      workingAtHeight,
+      suggestedPermits: workingAtHeight ? ["Permis de travail en hauteur"] : [],
+    };
+  }, [type, envHazards]);
+
   const { createJMT } = useApp();
 
-  const totalSteps = 4;
-
-  const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+  const handleSave = () => {
+    // enrichir les catalogues avec les nouvelles valeurs ajoutées
+    const addToOptions = (vals: string[], setOpts: React.Dispatch<React.SetStateAction<string[]>>, opts: string[]) => {
+      const newOnes = vals.filter(v => !opts.some(o => o.toLowerCase() === v.toLowerCase()));
+      if (newOnes.length) setOpts(prev => [...prev, ...newOnes]);
+    };
+    addToOptions(people, setPeopleOptions, peopleOptions);
+    addToOptions(materials, setMaterialsOptions, materialsOptions);
+    addToOptions(epiSpecific, setEpiSpecificOptions, epiSpecificOptions);
+    addToOptions(epiComplets, setEpiCompletsOptions, epiCompletsOptions);
+    if (zone && !zoneOptions.some(o => o.toLowerCase() === zone.toLowerCase())) setZoneOptions(prev => [...prev, zone]);
+    if (estimatedDuration && !durationOptions.some(o => o.toLowerCase() === estimatedDuration.toLowerCase())) {
+      setDurationOptions(prev => [...prev, estimatedDuration]);
     }
-  };
 
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+    const pdfData: PDFData = {
+      step1: { zone, date, workOrderNumber },
+      step2: {
+        description,
+        estimatedDuration,
+        resources: {
+          people,
+          materials,
+          epiSpecific,
+          epiComplets,
+        },
+      },
+      step3: { environmentHazards: envHazards },
+      step4: { riskManagement: riskMgmt },
+      step5: { lethalHazards: lethalRows },
+      step6: { responsibleName, validationDate: deadline },
+      autoDetection,
+    };
 
-  const handleSubmit = () => {
-    if (!formData.title || !formData.description || !formData.zone || !formData.deadline) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive"
-      });
-      return;
-    }
+    const requiredPPE = [...new Set([...epiSpecific, ...epiComplets])];
 
     createJMT({
-      ...formData,
-      deadline: formData.deadline!
+      title: title || `JMT ${format(new Date(), "dd/MM/yyyy", { locale: fr })} — ${zone || "Zone"}`,
+      description,
+      zone,
+      type,
+      deadline: deadline || new Date(),
+      assignedTo,
+      riskLevel,
+      requiredPPE,
+      risks: envHazards,
+      controls: riskMgmt,
+      // @ts-expect-error extension de schéma
+      pdfData,
+      // @ts-expect-error stockage pratique
+      workOrderNumber,
     });
 
-    // Reset form
-    setFormData(initialFormData);
-    setCurrentStep(1);
+    toast({ title: "JMT créée", description: "La fiche est prête pour validation et export PDF." });
     onOpenChange(false);
+    setCurrentStep(1);
   };
 
-  const addPPE = (ppe: string) => {
-    if (ppe && !formData.requiredPPE.includes(ppe)) {
-      setFormData(prev => ({
-        ...prev,
-        requiredPPE: [...prev.requiredPPE, ppe]
-      }));
-    }
-  };
+  const addLethalRow = () => setLethalRows([...lethalRows, { danger: "", controls: "" }]);
+  const updateLethalRow = (i: number, patch: Partial<LethalHazardRow>) =>
+      setLethalRows(lethalRows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const removeLethalRow = (i: number) => setLethalRows(lethalRows.filter((_, idx) => idx !== i));
 
-  const removePPE = (ppe: string) => {
-    setFormData(prev => ({
-      ...prev,
-      requiredPPE: prev.requiredPPE.filter(item => item !== ppe)
-    }));
-  };
+  const RiskChoices: { value: RiskLevel; label: string }[] = [
+    { value: "low", label: "Faible" },
+    { value: "medium", label: "Moyen" },
+    { value: "high", label: "Élevé" },
+  ];
 
-  const addRisk = (risk: string) => {
-    if (risk && !formData.risks.includes(risk)) {
-      setFormData(prev => ({
-        ...prev,
-        risks: [...prev.risks, risk]
-      }));
-    }
-  };
-
-  const removeRisk = (risk: string) => {
-    setFormData(prev => ({
-      ...prev,
-      risks: prev.risks.filter(item => item !== risk)
-    }));
-  };
-
-  const addControl = (control: string) => {
-    if (control && !formData.controls.includes(control)) {
-      setFormData(prev => ({
-        ...prev,
-        controls: [...prev.controls, control]
-      }));
-    }
-  };
-
-  const removeControl = (control: string) => {
-    setFormData(prev => ({
-      ...prev,
-      controls: prev.controls.filter(item => item !== control)
-    }));
-  };
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-4 animate-fade-in">
-            <div>
-              <Label htmlFor="title">Titre de l'intervention *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: Maintenance ascenseur Tour A"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description détaillée *</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Décrivez précisément les tâches à effectuer..."
-                className="mt-1 min-h-20"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="zone">Zone d'intervention *</Label>
-              <Input
-                id="zone"
-                value={formData.zone}
-                onChange={(e) => setFormData(prev => ({ ...prev, zone: e.target.value }))}
-                placeholder="Ex: Tour A - Niveaux 15-20"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="assignedTo">Équipe assignée *</Label>
-              <Input
-                id="assignedTo"
-                value={formData.assignedTo}
-                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-                placeholder="Ex: Équipe Maintenance"
-                className="mt-1"
-              />
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-4 animate-fade-in">
-            <div>
-              <Label>Type d'intervention *</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="height">Travail en hauteur</SelectItem>
-                  <SelectItem value="tower">Accès tour</SelectItem>
-                  <SelectItem value="confined">Espace confiné</SelectItem>
-                  <SelectItem value="electrical">Travail électrique</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Niveau de risque</Label>
-              <Select
-                value={formData.riskLevel}
-                onValueChange={(value: any) => setFormData(prev => ({ ...prev, riskLevel: value }))}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Risque faible</SelectItem>
-                  <SelectItem value="medium">Risque modéré</SelectItem>
-                  <SelectItem value="high">Risque élevé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Date limite d'exécution *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal mt-1",
-                      !formData.deadline && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.deadline ? (
-                      format(formData.deadline, "PPP", { locale: fr })
-                    ) : (
-                      <span>Sélectionner une date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.deadline}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, deadline: date }))}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-4 animate-fade-in">
-            <div>
-              <Label>Équipements de Protection Individuelle (EPI)</Label>
-              
-              <div className="mt-2 space-y-2">
-                <div className="flex gap-2">
-                  <Select onValueChange={addPPE}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Sélectionner un EPI" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ppeOptions.filter(ppe => !formData.requiredPPE.includes(ppe)).map(ppe => (
-                        <SelectItem key={ppe} value={ppe}>{ppe}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2">
-                  <Input
-                    value={newPPE}
-                    onChange={(e) => setNewPPE(e.target.value)}
-                    placeholder="Ou ajouter un EPI personnalisé"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (newPPE) {
-                        addPPE(newPPE);
-                        setNewPPE('');
-                      }
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {formData.requiredPPE.map(ppe => (
-                    <Badge key={ppe} variant="outline" className="flex items-center gap-1">
-                      {ppe}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removePPE(ppe)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <Label>Dangers/Risques identifiés</Label>
-              
-              <div className="mt-2 space-y-2">
-                <div className="flex gap-2">
-                  <Select onValueChange={addRisk}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Sélectionner un risque" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonRisks.filter(risk => !formData.risks.includes(risk)).map(risk => (
-                        <SelectItem key={risk} value={risk}>{risk}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2">
-                  <Input
-                    value={newRisk}
-                    onChange={(e) => setNewRisk(e.target.value)}
-                    placeholder="Ou ajouter un risque personnalisé"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (newRisk) {
-                        addRisk(newRisk);
-                        setNewRisk('');
-                      }
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {formData.risks.map(risk => (
-                    <Badge key={risk} variant="outline" className="flex items-center gap-1 bg-destructive/10">
-                      {risk}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeRisk(risk)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <Label>Mesures de maîtrise</Label>
-              
-              <div className="mt-2 space-y-2">
-                <div className="flex gap-2">
-                  <Select onValueChange={addControl}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Sélectionner une mesure" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonControls.filter(control => !formData.controls.includes(control)).map(control => (
-                        <SelectItem key={control} value={control}>{control}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2">
-                  <Input
-                    value={newControl}
-                    onChange={(e) => setNewControl(e.target.value)}
-                    placeholder="Ou ajouter une mesure personnalisée"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (newControl) {
-                        addControl(newControl);
-                        setNewControl('');
-                      }
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {formData.controls.map(control => (
-                    <Badge key={control} variant="outline" className="flex items-center gap-1 bg-accent/10">
-                      {control}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeControl(control)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const TypeChoices: { value: JMTType; label: string }[] = [
+    { value: "height", label: "Travail en hauteur" },
+    { value: "tower", label: "Tour / Dopol" },
+    { value: "confined", label: "Espace confiné" },
+    { value: "electrical", label: "Travaux électriques" },
+  ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-foreground">
-            Créer une nouvelle JMT
-          </DialogTitle>
-          
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center space-x-2 py-4">
-            {Array.from({ length: totalSteps }, (_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-2 w-8 rounded-full transition-colors duration-200",
-                  i + 1 <= currentStep ? "bg-primary" : "bg-muted"
-                )}
-              />
-            ))}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Créer une nouvelle JMT</DialogTitle>
+          </DialogHeader>
+
+          {/* Étapes */}
+          <div className="space-y-6">
+            {/* Étape 1 */}
+            {currentStep === 1 && (
+                <div className="space-y-4">
+                  <StepHeader n={1} total={totalSteps} title="Informations générales" />
+
+                  <div>
+                    <Label>Zone de travail *</Label>
+                    <div className="mt-2 flex gap-2">
+                      <Input
+                          value={zone}
+                          onChange={(e) => setZone(e.target.value)}
+                          placeholder="Ex: Tour Dopol – Étage 2"
+                      />
+                      <Button
+                          variant="outline"
+                          onClick={() => {
+                            if (zone && !zoneOptions.some(o => o.toLowerCase() === zone.toLowerCase())) {
+                              setZoneOptions(prev => [...prev, zone]);
+                              toast({ title: "Zone ajoutée", description: `"${zone}" a été ajoutée aux options.` });
+                            }
+                          }}
+                      >
+                        Ajouter à la liste
+                      </Button>
+                    </div>
+                    {zoneOptions.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {zoneOptions.map((opt) => (
+                              <Badge
+                                  key={opt}
+                                  variant={opt === zone ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => setZone(opt)}
+                              >
+                                {opt}
+                              </Badge>
+                          ))}
+                        </div>
+                    )}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Date *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                              variant="outline"
+                              className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground", "mt-1")}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "PPP", { locale: fr }) : "Sélectionner une date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={setDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div>
+                      <Label>Numéro de commande de travail *</Label>
+                      <Input
+                          className="mt-1"
+                          value={workOrderNumber}
+                          onChange={(e) => setWorkOrderNumber(e.target.value)}
+                          placeholder="Ex: CT-2025-1489"
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Type</Label>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {TypeChoices.map((t) => (
+                            <Button
+                                key={t.value}
+                                type="button"
+                                variant={type === t.value ? "default" : "outline"}
+                                onClick={() => setType(t.value)}
+                                className="h-9"
+                            >
+                              {t.label}
+                            </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Niveau de risque</Label>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {RiskChoices.map((r) => (
+                            <Badge
+                                key={r.value}
+                                className={cn(
+                                    "cursor-pointer px-3 py-2",
+                                    riskLevel === r.value ? "bg-primary text-primary-foreground" : "bg-muted"
+                                )}
+                                onClick={() => setRiskLevel(r.value)}
+                            >
+                              {r.label}
+                            </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Assigné à</Label>
+                      <Input
+                          className="mt-1"
+                          value={assignedTo}
+                          onChange={(e) => setAssignedTo(e.target.value)}
+                          placeholder="Ex: Équipe Maintenance"
+                      />
+                    </div>
+                  </div>
+                </div>
+            )}
+
+            {/* Étape 2 */}
+            {currentStep === 2 && (
+                <div className="space-y-4">
+                  <StepHeader n={2} total={totalSteps} title="Détails du travail & Ressources" />
+
+                  <div>
+                    <Label>Description *</Label>
+                    <Textarea
+                        className="mt-1 min-h-24"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Ex: Tirage de câble pour l’installation d’une sonde…"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Durée estimée</Label>
+                    <div className="mt-2 flex gap-2">
+                      <Input
+                          value={estimatedDuration}
+                          onChange={(e) => setEstimatedDuration(e.target.value)}
+                          placeholder="Ex: 4 heures"
+                      />
+                      <Button
+                          variant="outline"
+                          onClick={() => {
+                            const v = estimatedDuration.trim();
+                            if (!v) return;
+                            if (!durationOptions.some(o => o.toLowerCase() === v.toLowerCase())) {
+                              setDurationOptions(prev => [...prev, v]);
+                              toast({ title: "Durée ajoutée", description: `"${v}" a été ajoutée aux options.` });
+                            }
+                          }}
+                      >
+                        Ajouter à la liste
+                      </Button>
+                    </div>
+                    {durationOptions.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {durationOptions.map((opt) => (
+                              <Badge
+                                  key={opt}
+                                  variant={opt === estimatedDuration ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => setEstimatedDuration(opt)}
+                              >
+                                {opt}
+                              </Badge>
+                          ))}
+                        </div>
+                    )}
+                  </div>
+
+                  {/* Dropdown multi avec tags */}
+                  <DropdownTagMulti
+                      label="Ressources humaines"
+                      options={peopleOptions}
+                      setOptions={setPeopleOptions}
+                      selected={people}
+                      setSelected={setPeople}
+                  />
+
+                  <DropdownTagMulti
+                      label="Matériels / consommables"
+                      options={materialsOptions}
+                      setOptions={setMaterialsOptions}
+                      selected={materials}
+                      setSelected={setMaterials}
+                  />
+
+                  <DropdownTagMulti
+                      label="EPI spécifiques"
+                      options={epiSpecificOptions}
+                      setOptions={setEpiSpecificOptions}
+                      selected={epiSpecific}
+                      setSelected={setEpiSpecific}
+                  />
+
+                  <DropdownTagMulti
+                      label="EPI complets"
+                      options={epiCompletsOptions}
+                      setOptions={setEpiCompletsOptions}
+                      selected={epiComplets}
+                      setSelected={setEpiComplets}
+                  />
+                </div>
+            )}
+
+            {/* Étape 3 */}
+            {currentStep === 3 && (
+                <div className="space-y-4">
+                  <StepHeader n={3} total={totalSteps} title="Dangers liés à l’environnement" />
+                  <DropdownTagMulti
+                      label="Dangers"
+                      options={DEFAULT_ENV_HAZARDS}
+                      selected={envHazards}
+                      setSelected={setEnvHazards}
+                  />
+                </div>
+            )}
+
+            {/* Étape 4 */}
+            {currentStep === 4 && (
+                <div className="space-y-4">
+                  <StepHeader n={4} total={totalSteps} title="Gestion des risques (mesures)" />
+                  <DropdownTagMulti
+                      label="Mesures de maîtrise"
+                      options={DEFAULT_RISK_MGMT}
+                      selected={riskMgmt}
+                      setSelected={setRiskMgmt}
+                  />
+                </div>
+            )}
+
+            {/* Étape 5 */}
+            {currentStep === 5 && (
+                <div className="space-y-4">
+                  <StepHeader n={5} total={totalSteps} title="Dangers mortels / significatifs & moyens de maîtrise" />
+                  <div className="space-y-3">
+                    {lethalRows.map((row, idx) => (
+                        <div key={idx} className="grid md:grid-cols-12 gap-2 items-start">
+                          <div className="md:col-span-5">
+                            <Label>Danger</Label>
+                            <Input
+                                className="mt-1"
+                                value={row.danger}
+                                onChange={(e) => updateLethalRow(idx, { danger: e.target.value })}
+                                placeholder="Ex: Chute de hauteur"
+                            />
+                          </div>
+                          <div className="md:col-span-6">
+                            <Label>Moyens de maîtrise</Label>
+                            <Input
+                                className="mt-1"
+                                value={row.controls}
+                                onChange={(e) => updateLethalRow(idx, { controls: e.target.value })}
+                                placeholder="Ex: Harnais, point d’ancrage, intervention à deux…"
+                            />
+                          </div>
+                          <div className="md:col-span-1 flex md:justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => removeLethalRow(idx)} aria-label="Supprimer">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                    ))}
+                    <Button type="button" variant="outline" onClick={addLethalRow} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> Ajouter une ligne
+                    </Button>
+                  </div>
+                </div>
+            )}
+
+            {/* Étape 6 */}
+            {currentStep === 6 && (
+                <div className="space-y-4">
+                  <StepHeader n={6} total={totalSteps} title="Responsable & finalisation" />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nom du responsable *</Label>
+                      <Input
+                          className="mt-1"
+                          value={responsibleName}
+                          onChange={(e) => e.target.value.length <= 80 && setResponsibleName(e.target.value)}
+                          placeholder="Ex: Mohamed Mohamed"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Date de validation *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                              variant="outline"
+                              className={cn("w-full justify-start text-left font-normal", !deadline && "text-muted-foreground", "mt-1")}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {deadline ? format(deadline, "PPP", { locale: fr }) : "Sélectionner une date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={deadline} onSelect={setDeadline} initialFocus className="p-3 pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Titre (affiché dans la liste)</Label>
+                      <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Tirage câble – Tour Dopol D1" />
+                    </div>
+                    <div>
+                      <Label>Niveau de risque</Label>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {RiskChoices.map((r) => (
+                            <Badge
+                                key={r.value}
+                                className={cn(
+                                    "cursor-pointer px-3 py-2",
+                                    riskLevel === r.value ? "bg-primary text-primary-foreground" : "bg-muted"
+                                )}
+                                onClick={() => setRiskLevel(r.value)}
+                            >
+                              {r.label}
+                            </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Assigné à</Label>
+                      <Input className="mt-1" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+            )}
           </div>
-          
-          <p className="text-center text-sm text-muted-foreground">
-            Étape {currentStep} sur {totalSteps}
-          </p>
-        </DialogHeader>
 
-        <div className="py-4">
-          {renderStep()}
-        </div>
-
-        <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Précédent
-          </Button>
-
-          {currentStep === totalSteps ? (
-            <Button
-              onClick={handleSubmit}
-              className="bg-gradient-primary hover:opacity-90 flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Créer la JMT
+          {/* Footer */}
+          <div className="mt-6 flex items-center justify-between">
+            <Button variant="outline" onClick={() => setCurrentStep((s) => Math.max(1, s - 1))} disabled={currentStep === 1} className="flex items-center gap-2">
+              <ChevronLeft className="h-4 w-4" />
+              Précédent
             </Button>
-          ) : (
-            <Button
-              onClick={handleNext}
-              className="flex items-center gap-2"
-            >
-              Suivant
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            {currentStep === totalSteps ? (
+                <Button onClick={handleSave} className="flex items-center gap-2">
+                  <Save className="h-4 w-4" /> Enregistrer
+                </Button>
+            ) : (
+                <Button onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))} className="flex items-center gap-2">
+                  Suivant
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
   );
 }

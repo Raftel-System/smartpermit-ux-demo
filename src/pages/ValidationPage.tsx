@@ -291,139 +291,417 @@ export function ValidationPage({ userRole }: ValidationPageProps) {
       </div>
 
       {/* Modal de détails/action */}
+      {/*<Dialog open={showDetails} onOpenChange={setShowDetails}>*/}
+      {/*  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">*/}
+      {/*    <DialogHeader>*/}
+      {/*      <DialogTitle className="flex items-center gap-2">*/}
+      {/*        <Shield className="h-5 w-5" />*/}
+      {/*        {actionType ? */}
+      {/*          (actionType === 'approve' ? 'Valider la JMT' : 'Refuser la JMT') :*/}
+      {/*          'Détails de la JMT'*/}
+      {/*        }*/}
+      {/*      </DialogTitle>*/}
+      {/*    </DialogHeader>*/}
+
+      {/*    {selectedJMTData && (*/}
+      {/*      <div className="space-y-6">*/}
+      {/*        /!* Informations générales *!/*/}
+      {/*        <div>*/}
+      {/*          <h3 className="font-semibold text-foreground mb-3">{selectedJMTData.title}</h3>*/}
+      {/*          <p className="text-sm text-muted-foreground">{selectedJMTData.description}</p>*/}
+      {/*        </div>*/}
+
+      {/*        <Separator />*/}
+
+      {/*        /!* Détails techniques *!/*/}
+      {/*        <div className="grid grid-cols-2 gap-4 text-sm">*/}
+      {/*          <div>*/}
+      {/*            <span className="font-medium">Zone:</span>*/}
+      {/*            <p className="text-muted-foreground">{selectedJMTData.zone}</p>*/}
+      {/*          </div>*/}
+      {/*          <div>*/}
+      {/*            <span className="font-medium">Équipe:</span>*/}
+      {/*            <p className="text-muted-foreground">{selectedJMTData.assignedTo}</p>*/}
+      {/*          </div>*/}
+      {/*          <div>*/}
+      {/*            <span className="font-medium">Échéance:</span>*/}
+      {/*            <p className="text-muted-foreground">*/}
+      {/*              {format(selectedJMTData.deadline, 'dd MMMM yyyy', { locale: fr })}*/}
+      {/*            </p>*/}
+      {/*          </div>*/}
+      {/*          <div>*/}
+      {/*            <span className="font-medium">Niveau de risque:</span>*/}
+      {/*            <Badge className={getRiskColor(selectedJMTData.riskLevel)}>*/}
+      {/*              {getRiskLabel(selectedJMTData.riskLevel)}*/}
+      {/*            </Badge>*/}
+      {/*          </div>*/}
+      {/*        </div>*/}
+
+      {/*        <Separator />*/}
+
+      {/*        /!* EPI requis *!/*/}
+      {/*        <div>*/}
+      {/*          <h4 className="font-medium mb-2">EPI requis:</h4>*/}
+      {/*          <div className="flex flex-wrap gap-2">*/}
+      {/*            {selectedJMTData.requiredPPE.map(ppe => (*/}
+      {/*              <Badge key={ppe} variant="outline">{ppe}</Badge>*/}
+      {/*            ))}*/}
+      {/*          </div>*/}
+      {/*        </div>*/}
+
+      {/*        /!* Risques identifiés *!/*/}
+      {/*        <div>*/}
+      {/*          <h4 className="font-medium mb-2">Risques identifiés:</h4>*/}
+      {/*          <div className="flex flex-wrap gap-2">*/}
+      {/*            {selectedJMTData.risks.map(risk => (*/}
+      {/*              <Badge key={risk} variant="outline" className="bg-destructive/10">*/}
+      {/*                {risk}*/}
+      {/*              </Badge>*/}
+      {/*            ))}*/}
+      {/*          </div>*/}
+      {/*        </div>*/}
+
+      {/*        /!* Mesures de maîtrise *!/*/}
+      {/*        <div>*/}
+      {/*          <h4 className="font-medium mb-2">Mesures de maîtrise:</h4>*/}
+      {/*          <div className="flex flex-wrap gap-2">*/}
+      {/*            {selectedJMTData.controls.map(control => (*/}
+      {/*              <Badge key={control} variant="outline" className="bg-accent/10">*/}
+      {/*                {control}*/}
+      {/*              </Badge>*/}
+      {/*            ))}*/}
+      {/*          </div>*/}
+      {/*        </div>*/}
+
+      {/*        /!* Section commentaires pour action *!/*/}
+      {/*        {actionType && (*/}
+      {/*          <>*/}
+      {/*            <Separator />*/}
+      {/*            <div>*/}
+      {/*              <label className="text-sm font-medium">*/}
+      {/*                Commentaires {actionType === 'reject' && '(obligatoire)'}:*/}
+      {/*              </label>*/}
+      {/*              <Textarea*/}
+      {/*                value={comments}*/}
+      {/*                onChange={(e) => setComments(e.target.value)}*/}
+      {/*                placeholder={actionType === 'approve' */}
+      {/*                  ? 'Commentaires optionnels...'*/}
+      {/*                  : 'Expliquez les raisons du refus...'*/}
+      {/*                }*/}
+      {/*                className="mt-2"*/}
+      {/*                rows={3}*/}
+      {/*              />*/}
+      {/*            </div>*/}
+      {/*          </>*/}
+      {/*        )}*/}
+
+      {/*        /!* Actions *!/*/}
+      {/*        <div className="flex justify-end gap-3 pt-4 border-t">*/}
+      {/*          <Button variant="outline" onClick={() => setShowDetails(false)}>*/}
+      {/*            {actionType ? 'Annuler' : 'Fermer'}*/}
+      {/*          </Button>*/}
+      {/*          */}
+      {/*          {actionType && (*/}
+      {/*            <Button*/}
+      {/*              onClick={handleAction}*/}
+      {/*              className={actionType === 'approve' ? 'bg-gradient-success' : ''}*/}
+      {/*              variant={actionType === 'approve' ? 'default' : 'destructive'}*/}
+      {/*              disabled={actionType === 'reject' && !comments.trim()}*/}
+      {/*            >*/}
+      {/*              {actionType === 'approve' ? (*/}
+      {/*                <>*/}
+      {/*                  <CheckCircle className="h-4 w-4 mr-2" />*/}
+      {/*                  Valider*/}
+      {/*                </>*/}
+      {/*              ) : (*/}
+      {/*                <>*/}
+      {/*                  <XCircle className="h-4 w-4 mr-2" />*/}
+      {/*                  Refuser*/}
+      {/*                </>*/}
+      {/*              )}*/}
+      {/*            </Button>*/}
+      {/*          )}*/}
+      {/*        </div>*/}
+      {/*      </div>*/}
+      {/*    )}*/}
+      {/*  </DialogContent>*/}
+      {/*</Dialog>*/}
+
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              {actionType ? 
-                (actionType === 'approve' ? 'Valider la JMT' : 'Refuser la JMT') :
-                'Détails de la JMT'
-              }
+              {actionType
+                  ? actionType === "approve"
+                      ? "Valider la JMT"
+                      : "Refuser la JMT"
+                  : "Détails de la JMT"}
             </DialogTitle>
           </DialogHeader>
 
-          {selectedJMTData && (
-            <div className="space-y-6">
-              {/* Informations générales */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-3">{selectedJMTData.title}</h3>
-                <p className="text-sm text-muted-foreground">{selectedJMTData.description}</p>
-              </div>
+          {selectedJMTData && (() => {
+            // ------ Préparation/fallbacks vers l'ancien schéma ------
+            const d = selectedJMTData.pdfData ?? {};
+            const step1 = d.step1 ?? {
+              zone: selectedJMTData.zone,
+              date: selectedJMTData.deadline,
+              workOrderNumber: selectedJMTData.workOrderNumber || "",
+            };
+            const step2 = d.step2 ?? {
+              description: selectedJMTData.description,
+              estimatedDuration: "",
+              resources: {
+                people: [],
+                materials: [],
+                epiSpecific: [],
+                epiComplets: selectedJMTData.requiredPPE || [],
+              },
+            };
+            const step3 = d.step3 ?? { environmentHazards: selectedJMTData.risks || [] };
+            const step4 = d.step4 ?? { riskManagement: selectedJMTData.controls || [] };
+            const step5 = d.step5 ?? { lethalHazards: [] };
+            const step6 = d.step6 ?? {
+              responsibleName: selectedJMTData.assignedTo || "",
+              validationDate: selectedJMTData.deadline,
+            };
 
-              <Separator />
+            const auto = d.autoDetection ?? {
+              workingAtHeight:
+                  selectedJMTData.type === "height" ||
+                  /hauteur|échafaud|échelle|harnais/i.test(
+                      `${selectedJMTData.title} ${selectedJMTData.description} ${(selectedJMTData.risks || []).join(" ")} ${(selectedJMTData.requiredPPE || []).join(" ")}`
+                  ),
+              suggestedPermits:
+                  selectedJMTData.type === "height" ? ["Permis de travail en hauteur"] : [],
+            };
 
-              {/* Détails techniques */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Zone:</span>
-                  <p className="text-muted-foreground">{selectedJMTData.zone}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Équipe:</span>
-                  <p className="text-muted-foreground">{selectedJMTData.assignedTo}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Échéance:</span>
-                  <p className="text-muted-foreground">
-                    {format(selectedJMTData.deadline, 'dd MMMM yyyy', { locale: fr })}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium">Niveau de risque:</span>
-                  <Badge className={getRiskColor(selectedJMTData.riskLevel)}>
-                    {getRiskLabel(selectedJMTData.riskLevel)}
-                  </Badge>
-                </div>
-              </div>
+            const fmtDate = (x?: Date | string) => {
+              if (!x) return "—";
+              const dt = typeof x === "string" ? new Date(x) : x;
+              return isNaN(dt.getTime()) ? "—" : format(dt, "dd MMMM yyyy", { locale: fr });
+            };
 
-              <Separator />
+            const PillList = ({ items = [], variant = "outline", extraClass = "" }: { items?: string[]; variant?: any; extraClass?: string }) =>
+                items.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((it) => (
+                          <Badge key={it} variant={variant} className={extraClass}>
+                            {it}
+                          </Badge>
+                      ))}
+                    </div>
+                ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                );
 
-              {/* EPI requis */}
-              <div>
-                <h4 className="font-medium mb-2">EPI requis:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedJMTData.requiredPPE.map(ppe => (
-                    <Badge key={ppe} variant="outline">{ppe}</Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Risques identifiés */}
-              <div>
-                <h4 className="font-medium mb-2">Risques identifiés:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedJMTData.risks.map(risk => (
-                    <Badge key={risk} variant="outline" className="bg-destructive/10">
-                      {risk}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mesures de maîtrise */}
-              <div>
-                <h4 className="font-medium mb-2">Mesures de maîtrise:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedJMTData.controls.map(control => (
-                    <Badge key={control} variant="outline" className="bg-accent/10">
-                      {control}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Section commentaires pour action */}
-              {actionType && (
-                <>
-                  <Separator />
+            return (
+                <div className="space-y-6">
+                  {/* En-tête / résumé court */}
                   <div>
-                    <label className="text-sm font-medium">
-                      Commentaires {actionType === 'reject' && '(obligatoire)'}:
-                    </label>
-                    <Textarea
-                      value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                      placeholder={actionType === 'approve' 
-                        ? 'Commentaires optionnels...'
-                        : 'Expliquez les raisons du refus...'
-                      }
-                      className="mt-2"
-                      rows={3}
-                    />
+                    <h3 className="font-semibold text-foreground mb-1">{selectedJMTData.title}</h3>
+                    <p className="text-sm text-muted-foreground">{step2.description || "—"}</p>
                   </div>
-                </>
-              )}
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowDetails(false)}>
-                  {actionType ? 'Annuler' : 'Fermer'}
-                </Button>
-                
-                {actionType && (
-                  <Button
-                    onClick={handleAction}
-                    className={actionType === 'approve' ? 'bg-gradient-success' : ''}
-                    variant={actionType === 'approve' ? 'default' : 'destructive'}
-                    disabled={actionType === 'reject' && !comments.trim()}
-                  >
-                    {actionType === 'approve' ? (
+                  <Separator />
+
+                  {/* Statut / infos clés */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Zone :</span>
+                      <p className="text-muted-foreground">{step1.zone || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Équipe :</span>
+                      <p className="text-muted-foreground">{selectedJMTData.assignedTo || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Échéance :</span>
+                      <p className="text-muted-foreground">{fmtDate(selectedJMTData.deadline)}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Niveau de risque :</span>
+                      <Badge className={getRiskColor(selectedJMTData.riskLevel)}>
+                        {getRiskLabel(selectedJMTData.riskLevel)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* --- Étapes PDF (script3) --- */}
+                  <div className="space-y-5">
+                    {/* Étape 1 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 1 – Informations générales</h4>
+                      <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium">Date</div>
+                          <div className="text-muted-foreground">{fmtDate(step1.date)}</div>
+                        </div>
+                        <div>
+                          <div className="font-medium">N° de commande de travail</div>
+                          <div className="text-muted-foreground">{step1.workOrderNumber || "—"}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Étape 2 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 2 – Détails & Ressources</h4>
+                      <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium">Durée estimée</div>
+                          <div className="text-muted-foreground">{step2.estimatedDuration || "—"}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm font-medium mb-1">Ressources humaines</div>
+                          <PillList items={step2.resources?.people} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium mb-1">Matériels / consommables</div>
+                          <PillList items={step2.resources?.materials} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium mb-1">EPI spécifiques</div>
+                          <PillList items={step2.resources?.epiSpecific} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium mb-1">EPI complets</div>
+                          <PillList items={step2.resources?.epiComplets} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Étape 3 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 3 – Dangers liés à l’environnement</h4>
+                      <PillList items={step3.environmentHazards} variant="outline" extraClass="bg-destructive/10" />
+                    </div>
+
+                    {/* Étape 4 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 4 – Gestion des risques</h4>
+                      <PillList items={step4.riskManagement} variant="outline" extraClass="bg-accent/10" />
+                    </div>
+
+                    {/* Étape 5 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 5 – Dangers mortels / significatifs</h4>
+                      {step5.lethalHazards?.length ? (
+                          <div className="rounded-md border">
+                            <table className="w-full text-sm">
+                              <thead>
+                              <tr className="bg-muted">
+                                <th className="text-left p-2">Danger</th>
+                                <th className="text-left p-2">Moyens de maîtrise</th>
+                              </tr>
+                              </thead>
+                              <tbody>
+                              {step5.lethalHazards.map((row, i) => (
+                                  <tr key={i} className="border-t">
+                                    <td className="p-2 align-top">{row.danger || "—"}</td>
+                                    <td className="p-2 align-top">{row.controls || "—"}</td>
+                                  </tr>
+                              ))}
+                              </tbody>
+                            </table>
+                          </div>
+                      ) : (
+                          <p className="text-sm text-muted-foreground">—</p>
+                      )}
+                    </div>
+
+                    {/* Étape 6 */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Étape 6 – Responsable de l’intervention</h4>
+                      <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium">Nom</div>
+                          <div className="text-muted-foreground">{step6.responsibleName || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="font-medium">Date de validation</div>
+                          <div className="text-muted-foreground">{fmtDate(step6.validationDate)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Rappels (ancien affichage conservé) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">EPI requis (rappel)</h4>
+                      <PillList items={selectedJMTData.requiredPPE} />
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Risques (rappel)</h4>
+                      <PillList items={selectedJMTData.risks} variant="outline" extraClass="bg-destructive/10" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Mesures (rappel)</h4>
+                      <PillList items={selectedJMTData.controls} variant="outline" extraClass="bg-accent/10" />
+                    </div>
+                  </div>
+
+                  {/* Commentaires & actions de décision */}
+                  {actionType && (
                       <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Valider
+                        <Separator />
+                        <div>
+                          <label className="text-sm font-medium">
+                            Commentaires {actionType === "reject" && "(obligatoire)"} :
+                          </label>
+                          <Textarea
+                              value={comments}
+                              onChange={(e) => setComments(e.target.value)}
+                              placeholder={
+                                actionType === "approve"
+                                    ? "Commentaires optionnels..."
+                                    : "Expliquez les raisons du refus..."
+                              }
+                              className="mt-2"
+                              rows={3}
+                          />
+                        </div>
                       </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Refuser
-                      </>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setShowDetails(false)}>
+                      {actionType ? "Annuler" : "Fermer"}
+                    </Button>
+
+                    {actionType && (
+                        <Button
+                            onClick={handleAction}
+                            className={actionType === "approve" ? "bg-gradient-success" : ""}
+                            variant={actionType === "approve" ? "default" : "destructive"}
+                            disabled={actionType === "reject" && !comments.trim()}
+                        >
+                          {actionType === "approve" ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Valider
+                              </>
+                          ) : (
+                              <>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Refuser
+                              </>
+                          )}
+                        </Button>
                     )}
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+                  </div>
+                </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
