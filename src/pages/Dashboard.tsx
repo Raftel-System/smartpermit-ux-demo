@@ -16,6 +16,7 @@ import {format} from "date-fns";
 import {fr} from "date-fns/locale";
 import {Separator} from "@/components/ui/separator.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+import CreatePermitModal from "@/components/modals/CreatePermitModal.tsx";
 
 interface DashboardProps {
   userRole: 'user' | 'supervisor' | 'director';
@@ -23,6 +24,7 @@ interface DashboardProps {
 
 export function Dashboard({ userRole }: DashboardProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModalPermit, setShowCreateModalPermit] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { jmts, notifications, markNotificationRead } = useApp();
@@ -110,6 +112,10 @@ export function Dashboard({ userRole }: DashboardProps) {
     setShowCreateModal(true);
   };
 
+  const handleCreatePermit = () => {
+    setShowCreateModalPermit(true);
+  }
+
   // Filtrer les JMT selon le rôle et les filtres
   const filteredJMTs = jmts.filter(jmt => {
     const matchesSearch = jmt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,13 +146,25 @@ export function Dashboard({ userRole }: DashboardProps) {
   const getActionButton = () => {
     if (userRole === 'user') {
       return (
-        <Button 
-          onClick={handleCreateJMT}
-          className="bg-gradient-primary hover:opacity-90 shadow-glow transition-all duration-200 hover:scale-105"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle JMT
-        </Button>
+          <>
+            <Button
+                onClick={handleCreateJMT}
+                className="bg-gradient-primary hover:opacity-90 shadow-glow transition-all duration-200 hover:scale-105"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle JMT
+            </Button>
+
+            <Button
+                onClick={handleCreatePermit}
+                className="bg-gradient-success hover:opacity-90 shadow-glow transition-all duration-200 hover:scale-105"
+                style={{ marginLeft: '10px' }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau Permis
+            </Button>
+          </>
+
       );
     }
     return null;
@@ -392,6 +410,11 @@ export function Dashboard({ userRole }: DashboardProps) {
       <CreateJMTModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
+      />
+
+      <CreatePermitModal
+        open={showCreateModalPermit}
+        onOpenChange={setShowCreateModalPermit}
       />
 
       {selectedJMT && (
