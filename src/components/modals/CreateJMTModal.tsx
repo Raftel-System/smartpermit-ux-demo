@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { useApp } from "@/contexts/AppContext";
+import {JMTData, useApp} from "@/contexts/AppContext";
 import { DropdownTagMulti } from "@/components/form/DropdownTagMulti";
 
 type JMTType = "height" | "tower" | "confined" | "electrical";
@@ -46,6 +46,7 @@ interface PDFData {
 interface CreateJMTModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreated?: (jmt: JMTData) => void;
 }
 
 /* ===== Defaults ===== */
@@ -95,7 +96,7 @@ function StepHeader({ n, total, title }: { n: number; total: number; title: stri
 }
 
 /* ====== Modal ====== */
-export function CreateJMTModal({ open, onOpenChange }: CreateJMTModalProps) {
+export function CreateJMTModal({ open, onOpenChange, onCreated }: CreateJMTModalProps) {
   const totalSteps = 6;
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -190,14 +191,35 @@ export function CreateJMTModal({ open, onOpenChange }: CreateJMTModalProps) {
       requiredPPE,
       risks: envHazards,
       controls: riskMgmt,
-      // @ts-expect-error extension de schéma
       pdfData,
-      // @ts-expect-error stockage pratique
       workOrderNumber,
     });
 
     toast({ title: "JMT créée", description: "La fiche est prête pour validation et export PDF." });
     onOpenChange(false);
+    if (onCreated) {
+      const jmtData = {
+        title: title || `JMT ${format(new Date(), "dd/MM/yyyy", { locale: fr })} — ${zone || "Zone"}`,
+        description,
+        zone,
+        type,
+        deadline: deadline || new Date(),
+        assignedTo,
+        riskLevel,
+        requiredPPE,
+        risks: envHazards,
+        controls: riskMgmt,
+        pdfData,
+        workOrderNumber,
+      }
+      const jmt: JMTData = {
+        ...jmtData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        status: 'pending'
+      }
+      onCreated(jmt);
+    }
     setCurrentStep(1);
   };
 
