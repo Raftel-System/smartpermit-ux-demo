@@ -410,8 +410,8 @@ export function Dashboard({ userRole }: DashboardProps) {
       <CreateJMTModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
-        onCreated={(newJMT: JMTData) => {
-          if (newJMT &&  newJMT.type === 'height') {
+        onCreated={(type: string) => {
+          if (type === 'height') {
             setShowCreateModalPermit(true);
           }
         }}

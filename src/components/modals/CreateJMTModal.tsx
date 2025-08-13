@@ -46,7 +46,7 @@ interface PDFData {
 interface CreateJMTModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (jmt: JMTData) => void;
+  onCreated?: (type: string) => void;
 }
 
 /* ===== Defaults ===== */
@@ -198,27 +198,7 @@ export function CreateJMTModal({ open, onOpenChange, onCreated }: CreateJMTModal
     toast({ title: "JMT créée", description: "La fiche est prête pour validation et export PDF." });
     onOpenChange(false);
     if (onCreated) {
-      const jmtData = {
-        title: title || `JMT ${format(new Date(), "dd/MM/yyyy", { locale: fr })} — ${zone || "Zone"}`,
-        description,
-        zone,
-        type,
-        deadline: deadline || new Date(),
-        assignedTo,
-        riskLevel,
-        requiredPPE,
-        risks: envHazards,
-        controls: riskMgmt,
-        pdfData,
-        workOrderNumber,
-      }
-      const jmt: JMTData = {
-        ...jmtData,
-        id: Date.now().toString(),
-        createdAt: new Date(),
-        status: 'pending'
-      }
-      onCreated(jmt);
+      onCreated(type);
     }
     setCurrentStep(1);
   };

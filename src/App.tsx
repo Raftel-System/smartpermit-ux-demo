@@ -11,6 +11,7 @@ import { AppProvider } from "@/contexts/AppContext";
 import { Dashboard } from "@/pages/Dashboard";
 import { ValidationPage } from "@/pages/ValidationPage";
 import NotFound from "./pages/NotFound";
+import PermitsPage from "@/pages/PermitsPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +39,7 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard userRole={userRole} />} />
                     <Route path="/jmt" element={<Dashboard userRole={userRole} />} />
-                    <Route path="/permits" element={<Dashboard userRole={userRole} />} />
+                    <Route path="/permits" element={<PermitsPage currentUserName="Utilisateur Test" />} />
                     <Route path="/validations" element={
                       userRole !== 'user' ? 
                         <ValidationPage userRole={userRole as 'supervisor' | 'director'} /> : 

@@ -253,6 +253,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createPermit = (permitData: Omit<PermitData, 'id'>) => {
     const newPermit: PermitData = {
       ...permitData,
+      status: "pending",
       id: Date.now().toString()
     };
     
